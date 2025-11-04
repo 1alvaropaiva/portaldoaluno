@@ -1,0 +1,61 @@
+version: '3.8'
+networks:
+  dockernet:
+    name: '${APP_NAME}'
+services:
+  api:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+      target: build
+      args:
+        buildcmd: npm run build
+    command: 'npm run start:debug'
+    container_name: '${APP_NAME}'
+    environment:
+      - RUN_MIGRATIONS=true
+      - 'NODE_ENV=${NODE_ENV}'
+      - NODE_TLS_REJECT_UNAUTHORIZED=0
+    image: '${APP_NAME}:latest'
+    init: true
+    networks:
+      - 'dockernet'
+    ports:
+      - '${APP_PORT}:3000'
+      - '${APP_PORT_DEBUG}:9229'
+    volumes:
+      - './app:/usr/src/app'
+      - /usr/src/app/node_modules
+    depends_on:
+      - db
+  db:
+    image: postgres:15
+    restart: always
+    container_name: db
+    environment:
+      POSTGRES_USER: pguser
+      POSTGRES_PASSWORD: pgpassword
+      POSTGRES_DB: basedados
+    ports:
+      - "5433:5432"
+    volumes:
+      - ./db/pgdata:/var/lib/postgresql/data
+      - ./db/init_scripts:/docker-entrypoint-initdb.d
+    networks:
+      - dockernet
+  pgadmin:
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: 'teste@teste.com'
+      PGADMIN_DEFAULT_PASSWORD: 'teste'
+    ports:
+      - 16543:80
+    networks:
+      - dockernet
+  smtp4dev:
+    container_name: 'smtp4dev'
+    image: 'rnwood/smtp4dev:v3'
+    networks:
+      - 'dockernet'
+    ports:
+      - '${SMTP4DEV_WEB_INTERFACE_PORT}:80'
