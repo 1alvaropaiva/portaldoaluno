@@ -6,8 +6,9 @@ Este repositório contém uma API em NestJS para autenticação, gestão de alun
 
 Pré-requisitos:
 - Docker e Docker Compose instalados
+- Node.js 18+
 
-Opção 1 — Executar com Docker (recomendado):
+Executar com Docker:
 1. Na raiz do projeto, crie/ajuste o arquivo `.env` (raiz) conforme seção "Variáveis de ambiente" (os valores padrão já funcionam para desenvolvimento).
 2. Suba os serviços:
     - `docker-compose up`
