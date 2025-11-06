@@ -23,7 +23,7 @@ export class MailController {
   @ApiOperation({ summary: 'Solicita redefinição de senha' })
   @ApiResponse({
     status: 200,
-    description: 'Se o e-mail existir, um link de redefinição será enviado.',
+    description: 'Um token para redefinição da senha foi enviado ao seu e-mail.',
   })
   async requestReset(@Body() { email }: RequestResetPasswordDto) {
     const pessoa = await this.pessoaRepository.findOne({
@@ -33,8 +33,7 @@ export class MailController {
 
     if (!pessoa) {
       return {
-        message:
-          'Se este e-mail existir, enviaremos instruções para redefinição de senha.',
+        message: 'Não encontramos seu e-mail em nossa base de dados :(',
       };
     }
 

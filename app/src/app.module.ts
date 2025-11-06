@@ -17,7 +17,7 @@ dotenv.config();
       password: process.env.POSTGRES_PASSWORD,
       database: process.env.POSTGRES_DATABASE,
       entities: [PessoaEntity],
-      synchronize: process.env.RUN_MIGRATIONS === 'false',
+      synchronize: process.env.RUN_MIGRATIONS === 'true',
     }),
     PessoasModule,
     AuthModule,

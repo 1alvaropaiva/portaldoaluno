@@ -7,7 +7,7 @@ export class CreatePessoaDto {
   @IsString({ message: 'O nome deve conter apenas letras' })
   nome!: string;
 
-  @ApiProperty({ description: 'E-mail do aluno', example: 'joao@email.com' })
+  @ApiProperty({ description: 'E-mail do aluno', example: 'test@test.com' })
   @IsNotEmpty({ message: 'O e-mail é obrigatório' })
   @IsEmail({}, { message: 'E-mail inválido' })
   email!: string;
