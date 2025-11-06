@@ -1,95 +1,146 @@
-# Projeto NestJS + Postgres (Docker)
+# Portal do Aluno
 
-Este repositório contém um exemplo de API construída com NestJS, documentada com Swagger, e executada em containers Docker junto a um banco de dados PostgreSQL e o pgAdmin.
-
-Objetivos deste README:
-- Explicar como executar o projeto (com docker-compose e localmente).
-- Descrever a estrutura das pastas/arquivos mais importantes.
-- Documentar variáveis de ambiente e endpoints principais.
+Este repositório contém uma API em NestJS para autenticação, gestão de alunos e fluxo de redefinição de senha por e‑mail. A aplicação usa PostgreSQL via TypeORM, documentação via Swagger e serviços auxiliares (pgAdmin e smtp4dev) por Docker Compose.
 
 ## Como executar
 
 Pré-requisitos:
 - Docker e Docker Compose instalados
-- Node.js 18+ (apenas se desejar executar fora do Docker)
 
-Passos principais:
-1. Na pasta `app`, instale as dependências:
-   - `npm install`
-2. Na raiz do projeto (pasta "nestjs"), suba os containers:
-   - `docker-compose up`
-3. Acesse a API e documentação:
-   - API: http://localhost:8080
-   - Swagger: http://localhost:8080/swagger
+Opção 1 — Executar com Docker (recomendado):
+1. Na raiz do projeto, crie/ajuste o arquivo `.env` (raiz) conforme seção "Variáveis de ambiente" (os valores padrão já funcionam para desenvolvimento).
+2. Suba os serviços:
+    - `docker-compose up`
+3. Acesse:
+    - API (Swagger): http://localhost:8080/swagger
+    - pgAdmin: http://localhost:16543 (login definido no `docker-compose.yml`)
+    - smtp4dev (web): http://localhost:90
 
-Observações:
-- As portas podem ser alteradas via `.env` (raiz e app). Por padrão, a API expõe a porta 8080 do host para a 3000 do container.
-- O Postgres expõe a porta 5432.
-- O pgAdmin é acessível em http://localhost:16543 (login padrão definido em `docker-compose.yml`).
+Observação: Portas padrão no Docker: o host expõe 8080 -> 3000 (API) e 5433 -> 5432 (Postgres). A interface do smtp4dev usa a porta 90 no host.
 
 ## Estrutura do projeto
 
-- `app/` — Aplicação NestJS (código-fonte TypeScript, Dockerfile e .env da app)
-  - `src/`
-    - `main.ts` — Ponto de entrada da aplicação (inicializa servidor, Swagger e ValidationPipe).
-    - `app.module.ts` — Módulo raiz: configura o TypeORM e registra módulos/serviços/controllers.
-    - `app.controller.ts` — Controller raiz com uma rota GET simples.
-    - `app.service.ts` — Serviço de exemplo (lista em memória).
-    - `pessoas/` — Módulo de Pessoas (exemplo CRUD simplificado)
-      - `pessoas.module.ts` — Módulo de Pessoas (Controller + Service + Repository).
-      - `pessoas.controller.ts` — Endpoints: listar, buscar por id e cadastrar.
-      - `pessoas.service.ts` — Regras de negócio e acesso ao banco via TypeORM.
-      - `entities/pessoa.entity.ts` — Entidade mapeando a tabela `pessoa`.
-      - `dtos/cadastrar-pessoa.dto.ts` — DTO para cadastro com validações e docs Swagger.
-  - `Dockerfile` — Docker multi-stage: build e runtime da aplicação.
-  - `.env` — Variáveis específicas da aplicação (JWT, Postgres, logs etc.).
+- `app/` — Aplicação NestJS
+    - `src/`
+        - `main.ts` — Bootstrap do servidor, Swagger e ValidationPipe.
+        - `app.module.ts` — Módulo raiz: TypeORM + módulos da aplicação.
+        - `auth/` — Autenticação (login, registro, logout usando JWT)
+            - `auth.controller.ts`, `auth.service.ts`, `auth.module.ts`, `guard/auth.guard.ts`
+        - `pessoas/` — Domínio "Pessoa"
+            - `pessoas.controller.ts`, `pessoas.service.ts`, `pessoas.module.ts`
+            - `entities/pessoa.entity.ts` — Entidade `pessoa` (id, nome, email, senha, matricula)
+            - `dto/create-pessoa.dto.ts`, `dto/update-pessoa.dto.ts`
+        - `mail/` — Fluxo de e‑mail para redefinição de senha
+            - `mail.controller.ts`, `mail.service.ts`, `mail.module.ts`
+    - `Dockerfile` — Build docker
+    - `.env` — Variáveis específicas da aplicação
 - `db/` — Recursos do Postgres
-  - `pgdata/` — Dados persistentes do banco (montados no container). NÃO versionar.
-  - `init_scripts/` — Scripts executados na inicialização do container Postgres.
-    - `create_db.sql` — Script que cria a tabela `pessoa`.
-- `docker-compose.yml` — Orquestra API, Postgres e pgAdmin.
-- `.env` (raiz) — Variáveis globais usadas no docker-compose (APP_NAME, portas etc.).
-- `servers.json` — Pasta usada para mapear um arquivo de configuração do pgAdmin (volume montado). Se desejar usar um arquivo `servers.json`, coloque-o aqui.
+    - `pgdata/` — Dados persistidos (volume)
+    - `init_scripts/create_db.sql` — Criação de tabela `pessoa` na primeira execução
+- `docker-compose.yml` — API, Postgres, pgAdmin e smtp4dev
+- `.env` (raiz) — Variáveis globais usadas pelo docker-compose
 
 ## Endpoints principais
 
-- `GET /` — Retorna a string "HELLO" (exemplo simples). 
-- `GET /pessoas` — Lista todas as pessoas (dados do Postgres).
-- `GET /pessoas/:id` — Retorna uma pessoa pelo id.
-- `POST /pessoas` — Cadastra uma pessoa. Body (JSON):
+Autenticação (`/auth`):
+- `POST /auth/register` — Cria um usuário
+  Body:
   ```json
   {
-    "nome": "João da Silva",
-    "cpf": "12345678900",
-    "dataNascimento": "1990-01-01"
+    "nome": "Maria da Silva",
+    "email": "maria@exemplo.com",
+    "senha": "minhaSenha123",
+    "matricula": "20250001"
   }
   ```
+  Resposta: `{ "message": "Cadastrado com sucesso!" }`
 
-A documentação completa está no Swagger: `/swagger`.
+- `POST /auth/login` — Autentica e retorna um token JWT
+  Body:
+  ```json
+  {
+    "email": "maria@exemplo.com",
+    "senha": "minhaSenha123"
+  }
+  ```
+  Resposta:
+  ```json
+  { "token": "<JWT>" }
+  ```
+
+- `POST /auth/logout` — Invalida o token atual (requer Bearer token)
+  Header: `Authorization: Bearer <JWT>`
+  Resposta: `{ "message": "Logout efetuado com sucesso!" }`
+
+Pessoas (`/pessoas`):
+- `GET /pessoas` — Lista todas as pessoas (público)
+- `PUT /pessoas/update` — Atualiza os próprios dados (requer Bearer token)
+  Body (campos opcionais; e‑mail e matrícula não podem ser alterados):
+  ```json
+  {
+    "nome": "Novo Nome",
+    "senhaAtual": "minhaSenha123",
+    "novaSenha": "minhaNovaSenha456"
+  }
+  ```
+- `GET /pessoas/dashboard` — Retorna um resumo do usuário autenticado
+  Resposta (exemplo):
+  ```json
+  {
+    "mensagem": "Bem-vindo, Maria da Silva!",
+    "matricula": "20250001"
+  }
+  ```
+- `DELETE /pessoas/:id` — Remove a própria conta (requer Bearer token e o `:id` deve ser o do usuário)
+
+E‑mail/Redefinição de senha (`/mail`):
+- `POST /mail/request-reset` — Solicita redefinição de senha
+  Body:
+  ```json
+  { "email": "maria@exemplo.com" }
+  ```
+  Um e‑mail com um token de redefinição é enviado (ver interface do smtp4dev em http://localhost:90).
+
+- `POST /mail/reset-password` — Redefine a senha usando o token recebido
+  Body:
+  ```json
+  { "token": "<TOKEN_RECEBIDO>", "newPassword": "minhaNovaSenha456" }
+  ```
+
+A documentação completa e testável está no Swagger: `/swagger`.
+
+## Autenticação
+
+- JWT Bearer com expiração de 3 horas (algoritmo HS256). O Swagger já está configurado para enviar o token.
+- Após fazer `POST /auth/login`, copie o token e use "Authorize" no Swagger, ou envie no header `Authorization: Bearer <JWT>`.
 
 ## Variáveis de ambiente
 
 Arquivos `.env`:
-- `.env` (raiz): APP_NAME, APP_PORT, APP_PORT_DEBUG, SWAGGER_PATH, etc.
-- `app/.env`: inclui configs específicas (JWT, Postgres, Redis opcional, logger, RUN_MIGRATIONS etc.).
-
-Atenção em produção:
-- Não publique segredos (como JWT_SECRET) no repositório.
-- Ajuste `RUN_MIGRATIONS`/`synchronize` para não alterar schema automaticamente em produção.
+- `.env` (raiz):
+    - `APP_NAME` (padrão: `portal-api`)
+    - `APP_PORT` (porta do host mapeada para a API; padrão: `8080`)
+    - `SWAGGER_PATH` (padrão: `swagger`)
+    - `SWAGGER_SERVER` (padrão: `/`)
+    - `HTTP_LOGGER_DEV` (padrão: `true`)
+    - `SMTP4DEV_WEB_INTERFACE_PORT` (padrão: `90`)
+- `app/.env` (usado pela aplicação NestJS):
+    - `NODE_ENV=development`
+    - `PORT=3000` (porta interna do container/app)
+    - `SWAGGER_PATH=swagger`, `SWAGGER_SERVER=/`
+    - `POSTGRES_HOST=db`, `POSTGRES_PORT=5432`, `POSTGRES_USER=pguser`, `POSTGRES_PASSWORD=pgpassword`, `POSTGRES_DATABASE=basedados`
+    - `RUN_MIGRATIONS=true` (habilita `synchronize` do TypeORM — use com cuidado em produção)
+    - `SMTP_HOST=smtp4dev`, `SMTP_PORT=25`, `SMTP_FROM="no-reply@portaldoaluno.com"`
 
 ## Banco de Dados
 
-- Container Postgres com usuário `pguser`, senha `pgpassword` e base `basedados`.
-- Script `db/init_scripts/create_db.sql` cria a tabela `pessoa` ao iniciar pela primeira vez.
-- Os dados são persistidos em `db/pgdata/`.
+- Postgres em container com `pguser`/`pgpassword` e base `basedados`.
+- Porta do host: `5433` (mapeia para `5432` do container).
+- Scripts de inicialização em `db/init_scripts` criam a tabela `pessoa` na primeira execução.
+- Dados persistidos em `db/pgdata/`.
 
-## Desenvolvimento
+## Acesso rápido
 
-- Rodar a API diretamente (sem Docker):
-  - Dentro de `app`: `npm install && npm run start:dev`
-  - Acessar: http://localhost:3000 (ou porta definida em `PORT`)
-- Debug no Docker: porta 9229 mapeada conforme `.env`.
-
-## Licença
-
-Uso educacional/demonstrativo.
+- Swagger: http://localhost:8080/swagger
+- pgAdmin: http://localhost:16543 — credenciais no `docker-compose.yml`
+- smtp4dev (e‑mails capturados em dev): http://localhost:90
