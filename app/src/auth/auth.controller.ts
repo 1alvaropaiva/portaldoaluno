@@ -1,24 +1,24 @@
 import { Body, Controller, Post, Req, UseGuards } from '@nestjs/common';
 import { LoginDto } from './dto/login.dto';
 import { AuthService } from './auth.service';
-import { PessoasService } from '../pessoas/pessoas.service';
-import { CreatePessoaDto } from '../pessoas/dto/create-pessoa.dto';
 import express from 'express';
 import { addToBlacklist } from './token-blacklist';
 import { JwtService } from '@nestjs/jwt';
 import { AuthGuard } from './guard/auth.guard';
+import { AlunosService } from '../alunos/alunos.service';
+import { CreateAlunoDto } from '../alunos/dto/create-aluno.dto';
 
 @Controller('auth')
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
-    private readonly pessoasService: PessoasService,
+    private readonly alunosService: AlunosService,
     private readonly jwtService: JwtService,
   ) {}
 
   @Post('register')
-  async register(@Body() dto: CreatePessoaDto) {
-    await this.pessoasService.create(dto);
+  async register(@Body() dto: CreateAlunoDto) {
+    await this.alunosService.create(dto);
     return { message: 'Cadastrado com sucesso!' };
   }
 

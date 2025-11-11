@@ -5,16 +5,16 @@ import { RequestResetPasswordDto } from './dto/request-reset-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { PessoaEntity } from '../pessoas/entities/pessoa.entity';
 import * as bcrypt from 'bcryptjs';
+import { AlunoEntity } from '../alunos/entities/aluno.entity';
 
 @ApiTags('Mail')
 @Controller('mail')
 export class MailController {
   constructor(
     private readonly mailService: MailService,
-    @InjectRepository(PessoaEntity)
-    private readonly pessoaRepository: Repository<PessoaEntity>,
+    @InjectRepository(AlunoEntity)
+    private readonly alunoRepository: Repository<AlunoEntity>,
   ) {}
 
   private resetTokens: Map<string, string> = new Map();
@@ -23,24 +23,25 @@ export class MailController {
   @ApiOperation({ summary: 'Solicita redefinição de senha' })
   @ApiResponse({
     status: 200,
-    description: 'Um token para redefinição da senha foi enviado ao seu e-mail.',
+    description:
+      'Enviaremos via e-mail as instruções para redefinição de senha.',
   })
   async requestReset(@Body() { email }: RequestResetPasswordDto) {
-    const pessoa = await this.pessoaRepository.findOne({
+    const aluno = await this.alunoRepository.findOne({
       where: { email },
       select: ['id', 'email'],
     });
 
-    if (!pessoa) {
+    if (!aluno) {
       return {
         message: 'Não encontramos seu e-mail em nossa base de dados :(',
       };
     }
 
     const token = Math.random().toString(36).substring(2, 15);
-    this.resetTokens.set(token, pessoa.email);
+    this.resetTokens.set(token, aluno.email);
     await this.mailService.sendEmail({
-      to: pessoa.email,
+      to: aluno.email,
       subject: 'Redefinição de senha',
       html: `
         <h1>Redefinir senha</h1>
@@ -65,13 +66,13 @@ export class MailController {
       throw new BadRequestException('Token inválido ou expirado.');
     }
 
-    const pessoa = await this.pessoaRepository.findOne({ where: { email } });
-    if (!pessoa) {
-      throw new BadRequestException('Usuário não encontrado.');
+    const aluno = await this.alunoRepository.findOne({ where: { email } });
+    if (!aluno) {
+      throw new BadRequestException('Aluno não encontrado.');
     }
 
-    pessoa.senha = await bcrypt.hash(newPassword, 10);
-    await this.pessoaRepository.save(pessoa);
+    aluno.senha = await bcrypt.hash(newPassword, 10);
+    await this.alunoRepository.save(aluno);
 
     this.resetTokens.delete(token);
 

@@ -1,7 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsOptional, IsString, MinLength } from 'class-validator';
 
-export class UpdatePessoaDto {
+export class UpdateAlunoDto {
   @ApiPropertyOptional({ description: 'Novo nome completo' })
   @IsOptional()
   @IsString()

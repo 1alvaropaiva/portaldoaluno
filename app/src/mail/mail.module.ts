@@ -1,13 +1,13 @@
 import { Module } from '@nestjs/common';
 import { MailerModule, MailerOptions } from '@nestjs-modules/mailer';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { PessoaEntity } from '../pessoas/entities/pessoa.entity';
 import { MailController } from './mail.controller';
 import MailService from './mail.service';
+import { AlunoEntity } from '../alunos/entities/aluno.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([PessoaEntity]),
+    TypeOrmModule.forFeature([AlunoEntity]),
     MailerModule.forRootAsync({
       useFactory: (): MailerOptions => {
         const hasAuth = !!process.env.SMTP_USER && !!process.env.SMTP_PASS;

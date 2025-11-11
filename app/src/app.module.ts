@@ -1,10 +1,10 @@
 import * as dotenv from 'dotenv';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { PessoaEntity } from './pessoas/entities/pessoa.entity';
-import { PessoasModule } from './pessoas/pessoas.module';
 import { AuthModule } from './auth/auth.module';
 import { MailModule } from './mail/mail.module';
+import { AlunosModule } from './alunos/alunos.module';
+import { AlunoEntity } from './alunos/entities/aluno.entity';
 dotenv.config();
 
 @Module({
@@ -16,10 +16,10 @@ dotenv.config();
       username: process.env.POSTGRES_USER,
       password: process.env.POSTGRES_PASSWORD,
       database: process.env.POSTGRES_DATABASE,
-      entities: [PessoaEntity],
+      entities: [AlunoEntity],
       synchronize: process.env.RUN_MIGRATIONS === 'true',
     }),
-    PessoasModule,
+    AlunosModule,
     AuthModule,
     MailModule,
   ],

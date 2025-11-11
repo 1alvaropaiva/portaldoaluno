@@ -3,12 +3,12 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtModule } from '@nestjs/jwt';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { PessoaEntity } from '../pessoas/entities/pessoa.entity';
-import { PessoasService } from '../pessoas/pessoas.service';
+import { AlunosService } from '../alunos/alunos.service';
+import { AlunoEntity } from '../alunos/entities/aluno.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([PessoaEntity]),
+    TypeOrmModule.forFeature([AlunoEntity]),
     JwtModule.register({
       global: true,
       secret: 'secret',
@@ -16,7 +16,7 @@ import { PessoasService } from '../pessoas/pessoas.service';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, PessoasService],
+  providers: [AuthService, AlunosService],
   exports: [AuthService],
 })
 export class AuthModule {}

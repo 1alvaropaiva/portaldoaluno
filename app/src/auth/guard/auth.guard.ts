@@ -6,14 +6,14 @@ import {
 } from '@nestjs/common';
 import { Request } from 'express';
 import { JwtService } from '@nestjs/jwt';
-import { PessoasService } from '../../pessoas/pessoas.service';
 import { isBlacklisted } from '../token-blacklist';
+import { AlunosService } from '../../alunos/alunos.service';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
   constructor(
     private readonly jwtService: JwtService,
-    private readonly pessoasService: PessoasService,
+    private readonly alunosService: AlunosService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -42,15 +42,15 @@ export class AuthGuard implements CanActivate {
         throw new UnauthorizedException('Token inválido');
       }
 
-      const pessoa = await this.pessoasService.findOne(userId);
-      if (!pessoa) {
-        throw new UnauthorizedException('Pessoa não encontrada');
+      const aluno = await this.alunosService.findOne(userId);
+      if (!aluno) {
+        throw new UnauthorizedException('Aluno não encontrado');
       }
 
       request.user = {
-        id: pessoa.id,
-        nome: pessoa.nome,
-        email: pessoa.email,
+        id: aluno.id,
+        nome: aluno.nome,
+        email: aluno.email,
       };
     } catch (e) {
       console.error(e);

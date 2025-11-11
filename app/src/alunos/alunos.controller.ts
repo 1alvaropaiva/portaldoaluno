@@ -11,38 +11,38 @@ import {
   ParseIntPipe,
 } from '@nestjs/common';
 import type { Request } from 'express';
-import { PessoasService } from './pessoas.service';
-import { UpdatePessoaDto } from './dto/update-pessoa.dto';
 import { AuthGuard } from '../auth/guard/auth.guard';
+import { AlunosService } from './alunos.service';
+import { UpdateAlunoDto } from './dto/update-aluno.dto';
 
-@Controller('pessoas')
-export class PessoasController {
-  constructor(private readonly pessoasService: PessoasService) {}
+@Controller('alunos')
+export class AlunosController {
+  constructor(private readonly alunosService: AlunosService) {}
 
   @Get()
   findAll() {
-    return this.pessoasService.findAll();
+    return this.alunosService.findAll();
   }
 
   @UseGuards(AuthGuard)
   @Put('update')
-  async updateSelf(@Body() dto: UpdatePessoaDto, @Req() req: Request) {
+  async updateSelf(@Body() dto: UpdateAlunoDto, @Req() req: Request) {
     if (!req.user) {
-      throw new ForbiddenException('Usuário não autenticado');
+      throw new ForbiddenException('Aluno não autenticado');
     }
-    return this.pessoasService.update(req.user.id, dto);
+    return this.alunosService.update(req.user.id, dto);
   }
 
   @UseGuards(AuthGuard)
   @Get('dashboard')
   async dashboard(@Req() req: Request) {
     if (!req.user) {
-      throw new ForbiddenException('Usuário não autenticado');
+      throw new ForbiddenException('Aluno não autenticado');
     }
-    const pessoa = await this.pessoasService.findOne(req.user.id);
+    const aluno = await this.alunosService.findOne(req.user.id);
     return {
-      mensagem: `Bem-vindo, ${pessoa.nome}!`,
-      matricula: pessoa.matricula,
+      mensagem: `Bem-vindo, ${aluno.nome}!`,
+      matricula: aluno.matricula,
     };
   }
 
@@ -50,14 +50,14 @@ export class PessoasController {
   @Delete(':id')
   async remove(@Param('id', ParseIntPipe) id: number, @Req() req: Request) {
     if (!req.user) {
-      throw new ForbiddenException('Usuário não autenticado');
+      throw new ForbiddenException('Aluno não autenticado');
     }
 
     if (req.user.id !== id) {
       throw new ForbiddenException('Você só pode remover a sua própria conta');
     }
 
-    await this.pessoasService.remove(id);
+    await this.alunosService.remove(id);
     return 'Removido com sucesso!';
   }
 }

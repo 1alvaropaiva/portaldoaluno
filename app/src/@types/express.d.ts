@@ -1,3 +1,4 @@
+/* eslint-disable */
 import 'express';
 
 declare module 'express' {
