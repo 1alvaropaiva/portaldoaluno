@@ -12,4 +12,10 @@ export class LoginDto {
     example: 'testeteste',
   })
   senha!: string;
+
+  @ApiProperty({
+    description: 'Tipo de usuário: aluno ou admin',
+    example: 'aluno',
+  })
+  tipo!: 'aluno' | 'admin';
 }

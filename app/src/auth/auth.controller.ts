@@ -2,11 +2,11 @@ import { Body, Controller, Post, Req, UseGuards } from '@nestjs/common';
 import { LoginDto } from './dto/login.dto';
 import { AuthService } from './auth.service';
 import express from 'express';
-import { addToBlacklist } from './token-blacklist';
 import { JwtService } from '@nestjs/jwt';
 import { AuthGuard } from './guard/auth.guard';
 import { AlunosService } from '../alunos/alunos.service';
 import { CreateAlunoDto } from '../alunos/dto/create-aluno.dto';
+import { TokenBlacklistService } from './token-blacklist.service';
 
 @Controller('auth')
 export class AuthController {
@@ -14,6 +14,7 @@ export class AuthController {
     private readonly authService: AuthService,
     private readonly alunosService: AlunosService,
     private readonly jwtService: JwtService,
+    private readonly tokenBlacklistService: TokenBlacklistService,
   ) {}
 
   @Post('register')
@@ -23,13 +24,13 @@ export class AuthController {
   }
 
   @Post('login')
-  login(@Body() loginDto: LoginDto) {
+  async login(@Body() loginDto: LoginDto) {
     return this.authService.login(loginDto);
   }
 
   @UseGuards(AuthGuard)
   @Post('logout')
-  logout(@Req() req: express.Request): { message: string } {
+  async logout(@Req() req: express.Request): Promise<{ message: string }> {
     const authHeader = req.headers['authorization'];
 
     if (!authHeader) {
@@ -44,12 +45,24 @@ export class AuthController {
     }
 
     try {
-      const payload = this.jwtService.verify<{ exp: number }>(token, {
+      const payload = this.jwtService.verify<{
+        exp?: number;
+        sub: string | number;
+        jti?: string;
+      }>(token, {
         algorithms: ['HS256'],
       });
-      addToBlacklist(token, payload.exp);
-    } catch {
-      addToBlacklist(token);
+
+      const userId = payload.sub;
+      const jti = payload.jti;
+
+      if (!jti) {
+        await this.tokenBlacklistService.addByUserAndJti(userId, 'no-jti');
+      } else {
+        await this.tokenBlacklistService.addByUserAndJti(userId, jti);
+      }
+    } catch (err) {
+      console.log(err);
     }
 
     return { message: 'Logout efetuado com sucesso!' };

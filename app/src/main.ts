@@ -8,7 +8,7 @@ async function bootstrap() {
   const config = new DocumentBuilder()
     .setTitle('Portal do Aluno')
     .setDescription(
-      'API para controlar o fluxo de autenticação e registro do portal do aluno.',
+      'API para controlar o fluxo de autenticação, matrículas e registros do portal do aluno.',
     )
     .setVersion('BETA')
     .addBearerAuth(

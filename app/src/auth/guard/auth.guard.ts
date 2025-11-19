@@ -6,14 +6,15 @@ import {
 } from '@nestjs/common';
 import { Request } from 'express';
 import { JwtService } from '@nestjs/jwt';
-import { isBlacklisted } from '../token-blacklist';
-import { AlunosService } from '../../alunos/alunos.service';
+import { TokenBlacklistService } from '../token-blacklist.service';
+import { AuthService } from '../auth.service';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
   constructor(
     private readonly jwtService: JwtService,
-    private readonly alunosService: AlunosService,
+    private readonly authService: AuthService,
+    private readonly tokenBlacklistService: TokenBlacklistService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -24,37 +25,42 @@ export class AuthGuard implements CanActivate {
       throw new UnauthorizedException('Nenhum token fornecido');
     }
 
-    if (isBlacklisted(token)) {
-      throw new UnauthorizedException(
-        'Sessão encerrada. Faça login novamente.',
-      );
-    }
-
     try {
       const payload = this.jwtService.verify<{
-        nome: string;
-        email: string;
-        sub: unknown;
-      }>(token, { algorithms: ['HS256'] });
+        sub: number;
+        role: 'aluno' | 'admin';
+        jti: string;
+      }>(token);
 
       const userId = Number(payload.sub);
-      if (!Number.isInteger(userId) || userId <= 0) {
-        throw new UnauthorizedException('Token inválido');
+      const role = payload.role;
+      const jti = payload.jti;
+
+      if (
+        await this.tokenBlacklistService.isBlacklistedByUserAndJti(
+          userId,
+          jti,
+        )
+      ) {
+        throw new UnauthorizedException('Sessão encerrada');
       }
 
-      const aluno = await this.alunosService.findOne(userId);
-      if (!aluno) {
-        throw new UnauthorizedException('Aluno não encontrado');
+      const user = await this.authService.findUserByIdAndRole(userId, role);
+
+      if (!user) {
+        throw new UnauthorizedException('Usuário não encontrado');
       }
 
       request.user = {
-        id: aluno.id,
-        nome: aluno.nome,
-        email: aluno.email,
+        id: user.id,
+        nome: user.nome,
+        email: user.email,
+        role,
+        jti: payload.jti,
       };
-    } catch (e) {
-      console.error(e);
-      throw new UnauthorizedException('Token inválido', { cause: e });
+    } catch (err) {
+      console.error(err);
+      throw new UnauthorizedException('Token inválido');
     }
 
     return true;
