@@ -13,6 +13,7 @@ import { PreRequisitoEntity } from './rematricula/prerequisito/entities/prerequi
 import { MatriculaAlunoEntity } from './rematricula/matricula/entities/matricula.entity';
 import { RematriculaModule } from './rematricula/rematricula.module';
 import { AdminModule } from './admin/admin.module';
+import { AdminEntity } from './admin/entities/admin.entity';
 
 dotenv.config();
 
@@ -33,6 +34,7 @@ dotenv.config();
         TurmaEntity,
         PreRequisitoEntity,
         MatriculaAlunoEntity,
+        AdminEntity,
       ],
       synchronize: process.env.RUN_MIGRATIONS === 'true',
     }),
