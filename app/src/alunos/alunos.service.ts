@@ -10,20 +10,36 @@ import * as bcrypt from 'bcryptjs';
 import { AlunoEntity } from './entities/aluno.entity';
 import { CreateAlunoDto } from './dto/create-aluno.dto';
 import { UpdateAlunoDto } from './dto/update-aluno.dto';
+import { CursoEntity } from '../rematricula/curso/entities/curso.entity';
 
 @Injectable()
 export class AlunosService {
   constructor(
     @InjectRepository(AlunoEntity)
     private readonly repository: Repository<AlunoEntity>,
+    @InjectRepository(CursoEntity)
+    private readonly cursoRepository: Repository<CursoEntity>,
   ) {}
 
   async create(createAlunoDto: CreateAlunoDto): Promise<AlunoEntity> {
-    const senhaHash = await bcrypt.hash(createAlunoDto.senha, 10);
+    const { cursoId, senha, ...rest } = createAlunoDto;
+
+    const curso = await this.cursoRepository.findOne({
+      where: { id: cursoId },
+    });
+
+    if (!curso) {
+      throw new BadRequestException(`Curso com ID ${cursoId} não encontrado`);
+    }
+
+    const senhaHash = await bcrypt.hash(senha, 10);
+
     const aluno = this.repository.create({
-      ...createAlunoDto,
+      ...rest,
+      curso,
       senha: senhaHash,
     });
+
     return this.repository.save(aluno);
   }
 
@@ -84,8 +100,29 @@ export class AlunosService {
       aluno.senha = await bcrypt.hash(updateAlunoDto.novaSenha, 10);
     }
 
-    const saved = await this.repository.save(aluno);
-    return saved;
+    return await this.repository.save(aluno);
+  }
+  async adminUpdate(
+    id: number,
+    updateAlunoDto: UpdateAlunoDto,
+  ): Promise<AlunoEntity> {
+    if ('email' in updateAlunoDto || 'matricula' in updateAlunoDto) {
+      throw new BadRequestException(
+        'E-mail e matrícula não podem ser alterados',
+      );
+    }
+
+    const aluno = await this.findOneWithPassword(id);
+
+    if (updateAlunoDto.nome !== undefined) {
+      aluno.nome = updateAlunoDto.nome;
+    }
+
+    if (updateAlunoDto.novaSenha !== undefined) {
+      aluno.senha = await bcrypt.hash(updateAlunoDto.novaSenha, 10);
+    }
+
+    return await this.repository.save(aluno);
   }
 
   async remove(id: number): Promise<void> {

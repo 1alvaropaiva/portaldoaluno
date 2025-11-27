@@ -1,5 +1,13 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  OneToMany,
+  ManyToOne,
+} from 'typeorm';
+import { CursoEntity } from '../../rematricula/curso/entities/curso.entity';
+import { MatriculaAlunoEntity } from '../../rematricula/matricula/entities/matricula.entity';
 
 @Entity({ name: 'aluno' })
 export class AlunoEntity {
@@ -22,4 +30,14 @@ export class AlunoEntity {
   @ApiProperty({ description: 'Matrícula' })
   @Column({ name: 'matricula', length: 20, unique: true })
   matricula: string;
+
+  @ApiProperty({ description: 'Curso do aluno' })
+  @ManyToOne(() => CursoEntity, (curso) => curso.alunos, {
+    nullable: false,
+    onDelete: 'RESTRICT',
+  })
+  curso: CursoEntity;
+
+  @OneToMany(() => MatriculaAlunoEntity, (matricula) => matricula.aluno)
+  matriculas: MatriculaAlunoEntity[];
 }

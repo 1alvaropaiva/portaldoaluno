@@ -1,5 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString } from 'class-validator';
+import { IsEnum, IsOptional } from 'class-validator';
+import { SituacaoMatricula } from '../entities/matricula.entity';
 
 export class UpdateMatriculaDto {
   @ApiPropertyOptional({
@@ -7,6 +8,6 @@ export class UpdateMatriculaDto {
     example: 'cancelada',
   })
   @IsOptional()
-  @IsString()
-  situacao?: string;
+  @IsEnum(SituacaoMatricula)
+  situacao?: SituacaoMatricula;
 }

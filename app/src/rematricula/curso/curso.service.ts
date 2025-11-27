@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CursoEntity } from './entities/curso.entity';
@@ -39,6 +43,17 @@ export class CursosService {
 
   async remove(id: number): Promise<void> {
     const curso = await this.findOne(id);
-    await this.repository.remove(curso);
+
+    try {
+      await this.repository.remove(curso);
+    } catch (error) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      if (error.code === '23503') {
+        throw new BadRequestException(
+          'Não é possível remover este curso pois existem alunos vinculados a ele.',
+        );
+      }
+      throw error;
+    }
   }
 }

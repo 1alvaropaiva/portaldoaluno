@@ -32,7 +32,7 @@ export class RolesGuard implements CanActivate {
 
     if (!hasRole) {
       throw new ForbiddenException(
-        `Acesso negado: é necessário ter um dos papéis: ${requiredRoles.join(', ')}`,
+        `Acesso negado: apenas ${requiredRoles.join(', ')} pode acessar.`,
       );
     }
 

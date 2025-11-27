@@ -2,13 +2,17 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsOptional, IsString, MinLength } from 'class-validator';
 
 export class UpdateAlunoDto {
-  @ApiPropertyOptional({ description: 'Novo nome completo' })
+  @ApiPropertyOptional({
+    description: 'Novo nome completo',
+    example: 'Henrique',
+  })
   @IsOptional()
   @IsString()
   nome?: string;
 
   @ApiPropertyOptional({
     description: 'Senha atual (obrigatória para trocar a senha)',
+    example: 'Senha@123',
   })
   @IsOptional()
   @IsString()
@@ -16,6 +20,7 @@ export class UpdateAlunoDto {
 
   @ApiPropertyOptional({
     description: 'Nova senha (mínimo 6 caracteres); requer senhaAtual',
+    example: 'NovaSenha@123',
   })
   @IsOptional()
   @IsString()

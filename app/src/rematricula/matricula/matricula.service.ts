@@ -12,6 +12,7 @@ import { TurmaEntity } from '../turma/entities/turma.entity';
 import { AlunoEntity } from '../../alunos/entities/aluno.entity';
 import { PreRequisitoEntity } from '../prerequisito/entities/prerequisito.entity';
 import { DisciplinaEntity } from '../disciplina/entities/disciplina.entity';
+import { SituacaoMatricula } from './entities/matricula.entity';
 
 @Injectable()
 export class MatriculasService {
@@ -68,7 +69,7 @@ export class MatriculasService {
     const matricula = this.repository.create({
       aluno,
       turma,
-      situacao: 'ativa',
+      situacao: SituacaoMatricula.ATIVA,
     });
     return this.repository.save(matricula);
   }

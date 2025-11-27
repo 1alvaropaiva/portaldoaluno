@@ -7,6 +7,7 @@ import { AuthGuard } from './guard/auth.guard';
 import { AlunosService } from '../alunos/alunos.service';
 import { CreateAlunoDto } from '../alunos/dto/create-aluno.dto';
 import { TokenBlacklistService } from './token-blacklist.service';
+import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 
 @Controller('auth')
 export class AuthController {
@@ -18,18 +19,51 @@ export class AuthController {
   ) {}
 
   @Post('register')
+  @ApiOperation({
+    summary: 'Registra um novo aluno no sistema',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Cadastrado com sucesso!',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Curso com ID *id* não encontrado',
+  })
   async register(@Body() dto: CreateAlunoDto) {
     await this.alunosService.create(dto);
     return { message: 'Cadastrado com sucesso!' };
   }
 
   @Post('login')
+  @ApiOperation({
+    summary: 'Realiza o login do aluno/admin no sistema',
+  })
+  @ApiResponse({
+    status: 200,
+    description: '*Token JWT do login*',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Credenciais inválidas',
+  })
   async login(@Body() loginDto: LoginDto) {
     return this.authService.login(loginDto);
   }
 
   @UseGuards(AuthGuard)
   @Post('logout')
+  @ApiOperation({
+    summary: 'Realiza o logout do aluno/admin no sistema',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Logout efetuado com sucesso!',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Nenhum token fornecido',
+  })
   async logout(@Req() req: express.Request): Promise<{ message: string }> {
     const authHeader = req.headers['authorization'];
 
