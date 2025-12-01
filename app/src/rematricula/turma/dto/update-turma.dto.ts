@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString } from 'class-validator';
+import { IsNumber, IsOptional, IsString } from 'class-validator';
 
 export class UpdateTurmaDto {
   @ApiPropertyOptional({ description: 'Novo professor' })
@@ -14,6 +14,6 @@ export class UpdateTurmaDto {
 
   @ApiPropertyOptional({ description: 'Novo período letivo' })
   @IsOptional()
-  @IsString()
-  periodoLetivo?: string;
+  @IsNumber()
+  periodoLetivo?: number;
 }

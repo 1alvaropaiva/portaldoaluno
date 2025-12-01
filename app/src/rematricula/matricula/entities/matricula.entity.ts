@@ -1,11 +1,18 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, Unique } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  ManyToOne,
+  Unique,
+} from 'typeorm';
 import { AlunoEntity } from '../../../alunos/entities/aluno.entity';
 import { TurmaEntity } from '../../turma/entities/turma.entity';
 
 export enum SituacaoMatricula {
-  ATIVA = 'ativa',
+  CURSANDO = 'cursando',
   CANCELADA = 'cancelada',
+  CURSADA = 'cursada',
 }
 
 @Entity({ name: 'matricula_aluno' })
@@ -25,12 +32,15 @@ export class MatriculaAlunoEntity {
   })
   turma: TurmaEntity;
 
-  @ApiProperty({ description: 'Situação da matrícula', example: SituacaoMatricula.ATIVA })
+  @ApiProperty({
+    description: 'Situação da matrícula',
+    example: SituacaoMatricula.CURSANDO,
+  })
   @Column({
     name: 'situacao',
     type: 'enum',
     enum: SituacaoMatricula,
-    default: SituacaoMatricula.ATIVA,
+    default: SituacaoMatricula.CURSANDO,
   })
   situacao: SituacaoMatricula;
 

@@ -23,9 +23,9 @@ export class TurmaEntity {
   @Column({ name: 'horario', length: 50 })
   horario: string;
 
-  @ApiProperty({ description: 'Período letivo', example: '2025.1' })
-  @Column({ name: 'periodo_letivo', length: 20 })
-  periodoLetivo: string;
+  @ApiProperty({ description: 'Período letivo', example: '1' })
+  @Column({ name: 'periodo_letivo' })
+  periodoLetivo: number;
 
   @ManyToOne(() => DisciplinaEntity, (disciplina) => disciplina.turmas, {
     onDelete: 'CASCADE',

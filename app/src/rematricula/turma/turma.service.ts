@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, FindOptionsWhere } from 'typeorm';
+import { FindOptionsWhere, Repository } from 'typeorm';
 import { TurmaEntity } from './entities/turma.entity';
 import { CreateTurmaDto } from './dto/create-turma.dto';
 import { UpdateTurmaDto } from './dto/update-turma.dto';
@@ -41,7 +41,7 @@ export class TurmasService {
     const where: FindOptionsWhere<TurmaEntity> = {};
 
     if (periodo) {
-      where.periodoLetivo = periodo;
+      where.periodoLetivo = Number(periodo);
     }
 
     return this.repository.find({

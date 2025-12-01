@@ -19,6 +19,6 @@ export class CreateTurmaDto {
 
   @ApiProperty({ description: 'Período letivo', example: '2025.1' })
   @IsNotEmpty()
-  @IsString()
-  periodoLetivo!: string;
+  @IsNumber()
+  periodoLetivo!: number;
 }
