@@ -9,9 +9,12 @@ Pré-requisitos:
 - Node.js 18+
 
 Executar com Docker:
-1. Suba os serviços:
+
+1. Navegue até a pasta raiz do projeto pelo terminal e rode:
+    - `npm install`
+2. Suba os serviços:
     - `docker-compose up`
-2. Acesse:
+3. Acesse:
     - API (Swagger): http://localhost:8080/swagger
     - smtp4dev (web): http://localhost:90
     - RedisInsight (GUI para Redis): http://localhost:5540
