@@ -25,7 +25,7 @@ export class AdminService {
       senha: hash,
     });
 
-    return this.repository.save(admin);
+    return await this.repository.save(admin);
   }
 
   async findAll(): Promise<AdminEntity[]> {
@@ -80,6 +80,9 @@ export class AdminService {
 
   async remove(id: number): Promise<void> {
     const admin = await this.findOne(id);
+    if (!admin) {
+      throw new NotFoundException(`Admin com ID ${id} não encontrado`);
+    }
     await this.repository.remove(admin);
   }
 }

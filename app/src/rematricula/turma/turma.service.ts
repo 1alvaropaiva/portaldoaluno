@@ -65,12 +65,20 @@ export class TurmasService {
 
   async update(id: number, dto: UpdateTurmaDto): Promise<TurmaEntity> {
     const turma = await this.findOne(id);
+    if (!turma) {
+      throw new NotFoundException(`Turma com ID ${id} não encontrada`);
+    }
     Object.assign(turma, dto);
     return this.repository.save(turma);
   }
 
   async remove(id: number): Promise<void> {
     const turma = await this.findOne(id);
+
+    if (!turma) {
+      throw new NotFoundException(`Turma com ID ${id} não encontrada`);
+    }
+
     await this.repository.remove(turma);
   }
 }

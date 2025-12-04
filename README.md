@@ -1,6 +1,6 @@
 # Portal do Aluno
 
-Este repositório contém uma API em NestJS para autenticação, gestão de alunos e fluxo de redefinição de senha por e‑mail. A aplicação usa PostgreSQL via TypeORM, documentação via Swagger e serviços auxiliares (pgAdmin e smtp4dev) por Docker Compose.
+API em NestJS para autenticação, gestão de alunos, administração e fluxo de rematrícula (cursos, disciplinas, turmas, pré‑requisitos e matrícula de alunos). Inclui envio de e‑mail para redefinição de senha e uso de Redis para blacklist de tokens (logout) e cache. A documentação é publicada via Swagger e toda a stack de desenvolvimento roda com Docker Compose (API, Postgres, Redis, RedisInsight e smtp4dev).
 
 ## Como executar
 
@@ -9,15 +9,14 @@ Pré-requisitos:
 - Node.js 18+
 
 Executar com Docker:
-1. Na raiz do projeto, crie/ajuste o arquivo `.env` (raiz) conforme seção "Variáveis de ambiente" (os valores padrão já funcionam para desenvolvimento).
-2. Suba os serviços:
+1. Suba os serviços:
     - `docker-compose up`
-3. Acesse:
+2. Acesse:
     - API (Swagger): http://localhost:8080/swagger
-    - pgAdmin: http://localhost:16543 (login definido no `docker-compose.yml`)
     - smtp4dev (web): http://localhost:90
+    - RedisInsight (GUI para Redis): http://localhost:5540
 
-Observação: Portas padrão no Docker: o host expõe 8080 -> 3000 (API) e 5433 -> 5432 (Postgres). A interface do smtp4dev usa a porta 90 no host.
+Observação: Portas padrão no Docker: o host expõe 8080 -> 3000 (API), 5433 -> 5432 (Postgres), 6379 -> 6379 (Redis) e 5540 -> 5540 (RedisInsight). A interface do smtp4dev usa a porta 90 no host.
 
 ## Estrutura do projeto
 
@@ -25,26 +24,42 @@ Observação: Portas padrão no Docker: o host expõe 8080 -> 3000 (API) e 5433 
     - `src/`
         - `main.ts` — Bootstrap do servidor, Swagger e ValidationPipe.
         - `app.module.ts` — Módulo raiz: TypeORM + módulos da aplicação.
-        - `auth/` — Autenticação (login, registro, logout usando JWT)
-            - `auth.controller.ts`, `auth.service.ts`, `auth.module.ts`, `guard/auth.guard.ts`
-        - `pessoas/` — Domínio "Pessoa"
-            - `pessoas.controller.ts`, `pessoas.service.ts`, `pessoas.module.ts`
-            - `entities/pessoa.entity.ts` — Entidade `pessoa` (id, nome, email, senha, matricula)
-            - `dto/create-pessoa.dto.ts`, `dto/update-pessoa.dto.ts`
+        - `auth/` — Autenticação (registro/login/logout com JWT e blacklist, guards e roles)
+            - `auth.controller.ts`, `auth.service.ts`, `auth.module.ts`
+            - `guard/auth.guard.ts`, `guard/roles.guard.ts`, `decorators/role.decorator.ts`
+            - `token-blacklist.service.ts`, `session.service.ts`, `dto/login.dto.ts`
+        - `alunos/` — Domínio de alunos (CRUD básico e endpoints do próprio usuário)
+            - `alunos.controller.ts`, `alunos.service.ts`, `entities/aluno.entity.ts`
+            - `dto/create-aluno.dto.ts`, `dto/update-aluno.dto.ts`, `alunos.module.ts`
+        - `admin/` — Domínio de administradores (operações para conta admin logada)
+            - `admin.controller.ts`, `admin.service.ts`, `entities/admin.entity.ts`
+            - `dto/create-admin.dto.ts`, `dto/update-admin.dto.ts`, `admin.module.ts`
+        - `rematricula/` — Domínio acadêmico de rematrícula
+            - `curso/` — `curso.controller.ts`, `curso.service.ts`, `entities/curso.entity.ts`, `curso.module.ts`
+            - `disciplina/` — `disciplina.controller.ts`, `disciplina.service.ts`, `entities/disciplina.entity.ts`, `disciplina.module.ts`
+            - `turma/` — `turma.controller.ts`, `turma.service.ts`, `entities/turma.entity.ts`, `turma.module.ts`
+            - `prerequisito/` — `prerequisito.controller.ts`, `prerequisito.service.ts`, `entities/prerequisito.entity.ts`, `prerequisito.module.ts`
+            - `matricula/` — `matricula.controller.ts`, `matricula.service.ts`, `entities/matricula.entity.ts`, `matricula.module.ts`
+            - `rematricula.module.ts` agrega os submódulos.
         - `mail/` — Fluxo de e‑mail para redefinição de senha
             - `mail.controller.ts`, `mail.service.ts`, `mail.module.ts`
-    - `Dockerfile` — Build docker
-    - `.env` — Variáveis específicas da aplicação
+        - `redis/` — Módulo de Redis (conexão centralizada)
+            - `redis.module.ts`
+    - `Dockerfile` — Build da aplicação para o container
+    - `.env` — Variáveis específicas da aplicação (consumidas pela API dentro do container)
 - `db/` — Recursos do Postgres
     - `pgdata/` — Dados persistidos (volume)
-    - `init_scripts/create_db.sql` — Criação de tabela `pessoa` na primeira execução
-- `docker-compose.yml` — API, Postgres, pgAdmin e smtp4dev
+    - `init_scripts/` — Scripts de inicialização do banco
+- `redis/` — Dados persistidos do Redis para o Docker
+    - `data/` — AOF/RDB e arquivos de estado do Redis
+- `propostas/` — Materiais auxiliares e propostas de modelos/rotas (documentação de apoio)
+- `docker-compose.yml` — Orquestração: API, Postgres, Redis, RedisInsight e smtp4dev
 - `.env` (raiz) — Variáveis globais usadas pelo docker-compose
 
-## Endpoints principais
+## Endpoints principais (resumo)
 
 Autenticação (`/auth`):
-- `POST /auth/register` — Cria um usuário
+- `POST /auth/register` — Cria um aluno
   Body:
   ```json
   {
@@ -56,57 +71,50 @@ Autenticação (`/auth`):
   ```
   Resposta: `{ "message": "Cadastrado com sucesso!" }`
 
-- `POST /auth/login` — Autentica e retorna um token JWT
+- `POST /auth/login` — Autentica e retorna os dados de sessão (inclui JWT)
   Body:
   ```json
-  {
-    "email": "maria@exemplo.com",
-    "senha": "minhaSenha123"
-  }
+  { "email": "maria@exemplo.com", "senha": "minhaSenha123" }
   ```
-  Resposta:
+  Resposta (exemplo):
   ```json
   { "token": "<JWT>" }
   ```
 
-- `POST /auth/logout` — Invalida o token atual (requer Bearer token)
-  Header: `Authorization: Bearer <JWT>`
-  Resposta: `{ "message": "Logout efetuado com sucesso!" }`
+- `POST /auth/logout` — Invalida o token atual (requer Bearer token).
 
-Pessoas (`/pessoas`):
-- `GET /pessoas` — Lista todas as pessoas (público)
-- `PUT /pessoas/update` — Atualiza os próprios dados (requer Bearer token)
+Alunos (`/alunos`):
+- `GET /alunos` — Lista todos os alunos (público)
+- `PUT /alunos/update` — Atualiza os próprios dados (autenticado)
   Body (campos opcionais; e‑mail e matrícula não podem ser alterados):
   ```json
-  {
-    "nome": "Novo Nome",
-    "senhaAtual": "minhaSenha123",
-    "novaSenha": "minhaNovaSenha456"
-  }
+  { "nome": "Novo Nome", "senhaAtual": "minhaSenha123", "novaSenha": "minhaNovaSenha456" }
   ```
-- `GET /pessoas/dashboard` — Retorna um resumo do usuário autenticado
-  Resposta (exemplo):
-  ```json
-  {
-    "mensagem": "Bem-vindo, Maria da Silva!",
-    "matricula": "20250001"
-  }
-  ```
-- `DELETE /pessoas/:id` — Remove a própria conta (requer Bearer token e o `:id` deve ser o do usuário)
+- `GET /alunos/dashboard` — Dashboard do aluno autenticado
+- `DELETE /alunos/:id` — Remove a própria conta (o `:id` deve ser o do aluno autenticado)
+
+Admin (`/admin`):
+- `POST /admin` — Cria um administrador
+- `GET /admin` — Lista administradores
+- `PUT /admin/update` — Atualiza os próprios dados (autenticado)
+- `GET /admin/dashboard` — Dashboard do admin autenticado
+- `DELETE /admin/:id` — Remove a própria conta admin
 
 E‑mail/Redefinição de senha (`/mail`):
-- `POST /mail/request-reset` — Solicita redefinição de senha
-  Body:
-  ```json
-  { "email": "maria@exemplo.com" }
-  ```
-  Um e‑mail com um token de redefinição é enviado (ver interface do smtp4dev em http://localhost:90).
+- `POST /mail/request-reset` — Solicita redefinição de senha para um e‑mail cadastrado
+- `POST /mail/reset-password` — Redefine a senha usando o token recebido por e‑mail
 
-- `POST /mail/reset-password` — Redefine a senha usando o token recebido
-  Body:
-  ```json
-  { "token": "<TOKEN_RECEBIDO>", "newPassword": "minhaNovaSenha456" }
-  ```
+Rematrícula (domínio acadêmico):
+- Cursos (`/cursos`): `POST`, `GET`, `GET /:id`, `PUT /:id`, `DELETE /:id`
+- Disciplinas (`/disciplinas`): `POST`, `GET`, `GET /:id`, `PUT /:id`, `DELETE /:id`
+- Turmas (`/turmas`): `POST`, `GET`, `GET /:id`, `PUT /:id`, `DELETE /:id`
+- Pré‑requisitos (`/prerequisitos`): `POST`, `GET`, `GET /:id`, `PUT /:id`, `DELETE /:id`
+- Matrículas (`/matriculas`): criação/listagem/atualização/remoção de matrículas de alunos em turmas. A matrícula possui situação (`situacao`) com os estados:
+  - `cursando`
+  - `cancelada`
+  - `cursada`
+
+  Para fins de **pré‑requisito**, somente matrículas com situação `cursada` contam como disciplina cumprida. Ou seja, o aluno só pode se matricular em uma disciplina que possua pré‑requisito se já tiver ao menos uma matrícula `cursada` na disciplina requisito; matrículas `cursando`, `cancelada` ou apenas `ativa` não atendem ao pré‑requisito.
 
 A documentação completa e testável está no Swagger: `/swagger`.
 
@@ -114,6 +122,8 @@ A documentação completa e testável está no Swagger: `/swagger`.
 
 - JWT Bearer com expiração de 3 horas (algoritmo HS256). O Swagger já está configurado para enviar o token.
 - Após fazer `POST /auth/login`, copie o token e use "Authorize" no Swagger, ou envie no header `Authorization: Bearer <JWT>`.
+- Logout: tokens são invalidados via blacklist no Redis até a expiração do próprio JWT.
+- Autorização por papel (roles): há suporte a guards e decorator de role: `aluno` ou `admin`.
 
 ## Variáveis de ambiente
 
@@ -125,6 +135,7 @@ Arquivos `.env`:
     - `SWAGGER_SERVER` (padrão: `/`)
     - `HTTP_LOGGER_DEV` (padrão: `true`)
     - `SMTP4DEV_WEB_INTERFACE_PORT` (padrão: `90`)
+    - `REDIS_PASSWORD` (senha do Redis usada no container e na API; padrão: `portalaluno`)
 - `app/.env` (usado pela aplicação NestJS):
     - `NODE_ENV=development`
     - `PORT=3000` (porta interna do container/app)
@@ -132,16 +143,81 @@ Arquivos `.env`:
     - `POSTGRES_HOST=db`, `POSTGRES_PORT=5432`, `POSTGRES_USER=pguser`, `POSTGRES_PASSWORD=pgpassword`, `POSTGRES_DATABASE=basedados`
     - `RUN_MIGRATIONS=true` (habilita `synchronize` do TypeORM — use com cuidado em produção)
     - `SMTP_HOST=smtp4dev`, `SMTP_PORT=25`, `SMTP_FROM="no-reply@portaldoaluno.com"`
+    - Redis:
+        - `REDIS_HOST=redis`
+        - `REDIS_PORT=6379`
+        - `REDIS_DB=0`
+        - `REDIS_PASSWORD=portalaluno`
+        - `REDIS_PREFIX=portal:`
 
 ## Banco de Dados
 
 - Postgres em container com `pguser`/`pgpassword` e base `basedados`.
 - Porta do host: `5433` (mapeia para `5432` do container).
-- Scripts de inicialização em `db/init_scripts` criam a tabela `pessoa` na primeira execução.
+- Scripts de inicialização em `db/init_scripts` podem criar objetos iniciais do banco na primeira execução.
 - Dados persistidos em `db/pgdata/`.
 
-## Acesso rápido
+## Redis e Sessões/Tokens
 
-- Swagger: http://localhost:8080/swagger
-- pgAdmin: http://localhost:16543 — credenciais no `docker-compose.yml`
-- smtp4dev (e‑mails capturados em dev): http://localhost:90
+- O projeto usa Redis como store de cache global via `cache-manager-redis-store` e para blacklist de tokens (logout).
+- Tokens de logout (blacklist) são gravados no Redis com prefixo `portal:blacklist:` e TTL automático até a expiração do próprio JWT.
+- Serviço Redis em Docker:
+  - Host: `localhost`
+  - Porta: `6379`
+  - Senha: valor de `REDIS_PASSWORD` no `.env` da raiz (padrão: `portalaluno`)
+  - DB (índice): `0`
+- GUI RedisInsight em: http://localhost:5540
+  - Ao abrir, adicione uma conexão com:
+    - Host: `redis`
+    - Porta: `6379`
+    - Senha: `portalaluno`
+    - Database: `0`
+  - Alternativamente, do host: Host `localhost` com as mesmas credenciais.
+
+Conexão via `redis-cli` (host):
+```
+redis-cli -h 127.0.0.1 -p 6379 -a portalaluno ping
+```
+Você deve receber `PONG`.
+
+Chaves gravadas pela aplicação seguem o prefixo configurado em `REDIS_PREFIX` (padrão `portal:`). A blacklist usa `portal:blacklist:<token>`.
+
+## Credenciais para clientes (DBeaver, RedisInsight, etc.)
+
+- PostgreSQL (para DBeaver):
+  - Host: `localhost`
+  - Porta: `5433`
+  - Database: `basedados`
+  - Usuário: `pguser`
+  - Senha: `pgpassword`
+
+- Redis:
+  - Cliente: RedisInsight (GUI) ou redis-cli.
+  - Host: `redis`
+  - Porta: `6379`
+  - Database index: `0`
+  - Senha: `portalaluno` (ou mudar no `.env`)
+
+## Como o projeto funciona (visão geral)
+
+- Autenticação e sessão
+  - Registro e login de aluno com validação (`class-validator`) e hashing de senha (`bcryptjs`).
+  - Geração de JWT (HS256) contendo identificador do usuário. O tempo de expiração padrão é de 3 horas.
+  - Logout grava o identificador do token na blacklist do Redis até a expiração, bloqueando seu reuso.
+  - Guards (`AuthGuard`, `RolesGuard`) e decorator `Role` para restringir o acesso a determinados papéis.
+
+- Domínios principais
+  - Alunos: lista pública, atualização de dados do próprio usuário, dashboard, remoção da própria conta.
+  - Admin: atualização e dashboard do administrador autenticado, além de listagem e criação de admin.
+  - Rematrícula: entidades e endpoints para cursos, disciplinas, turmas, pré‑requisitos e matrículas.
+
+- E‑mail e redefinição de senha
+  - `smtp4dev` captura os e‑mails em ambiente de desenvolvimento.
+  - O endpoint `/mail/request-reset` gera um token simples em memória para demonstração e envia por e‑mail.
+  - `/mail/reset-password` valida o token e atualiza a senha do aluno com hashing. Em produção, recomenda‑se persistir tokens com expiração (ex.: Redis/DB) e enviar links com página de reset.
+
+- Infraestrutura
+  - Docker Compose orquestra API, Postgres, Redis, RedisInsight e smtp4dev.
+  - TypeORM com `synchronize` controlado por `RUN_MIGRATIONS`.
+
+Qualquer dúvida sobre endpoints, schemas e exemplos, consulte o Swagger.

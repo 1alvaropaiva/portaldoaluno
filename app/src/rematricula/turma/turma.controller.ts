@@ -13,7 +13,7 @@ import {
 import { CreateTurmaDto } from './dto/create-turma.dto';
 import { UpdateTurmaDto } from './dto/update-turma.dto';
 import { TurmasService } from './turma.service';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { AuthGuard } from '../../auth/guard/auth.guard';
 import { RolesGuard } from '../../auth/guard/roles.guard';
 import { Roles } from '../../auth/decorators/role.decorator';
@@ -33,14 +33,26 @@ export class TurmasController {
     status: 200,
     description: 'Turma criada com sucesso!',
   })
-  create(@Body() dto: CreateTurmaDto) {
-    return this.turmasService.create(dto);
+  @ApiResponse({
+    status: 404,
+    description: 'Disciplica com ID *id* não encontrada.',
+  })
+  async create(@Body() dto: CreateTurmaDto) {
+    await this.turmasService.create(dto);
+    return 'Turma criada com sucesso!';
   }
 
+  @UseGuards(AuthGuard)
   @Get()
   @ApiOperation({
     summary:
       'Retorna as turmas cadastradas no sistema (filtra por período se informado)',
+  })
+  @ApiQuery({
+    name: 'periodo',
+    required: false,
+    type: String,
+    description: 'Filtra por período letivo (opcional)',
   })
   @ApiResponse({
     status: 200,
@@ -50,6 +62,7 @@ export class TurmasController {
     return this.turmasService.findAll(periodo);
   }
 
+  @UseGuards(AuthGuard)
   @Get(':id')
   @ApiOperation({
     summary: 'Retorna a turma com o id informado',
@@ -74,14 +87,22 @@ export class TurmasController {
   })
   @ApiResponse({
     status: 200,
-    description: 'Turma atualizada com sucesso!',
+    description: 'Turma atualizada com sucesso! + dados da turma atualizada',
   })
   @ApiResponse({
     status: 404,
     description: 'Turma com ID **id** não encontrada',
   })
-  update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateTurmaDto) {
-    return this.turmasService.update(id, dto);
+  async update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateTurmaDto,
+  ) {
+    const turmaAtualizada = await this.turmasService.update(id, dto);
+
+    return {
+      message: 'Turma atualizada com sucesso!',
+      data: turmaAtualizada,
+    };
   }
 
   @UseGuards(AuthGuard, RolesGuard)
@@ -92,13 +113,14 @@ export class TurmasController {
   })
   @ApiResponse({
     status: 200,
-    description: 'Turma removida com sucesso!',
+    description: 'Turma com id *id* removida com sucesso!',
   })
   @ApiResponse({
     status: 404,
     description: 'Turma com ID **id** não encontrada',
   })
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.turmasService.remove(id);
+  async remove(@Param('id', ParseIntPipe) id: number) {
+    await this.turmasService.remove(id);
+    return 'Turma com id ${id} removida com sucesso!';
   }
 }

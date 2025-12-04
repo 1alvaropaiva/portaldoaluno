@@ -36,6 +36,7 @@ export class PreRequisitosController {
     return this.service.create(dto);
   }
 
+  @UseGuards(AuthGuard)
   @Get()
   @ApiOperation({
     summary: 'Retorna os pré-requisitos cadastrados no sistema',
@@ -48,6 +49,7 @@ export class PreRequisitosController {
     return this.service.findAll();
   }
 
+  @UseGuards(AuthGuard)
   @Get(':id')
   @ApiOperation({
     summary: 'Retorna o pré-requisito com o id informado',

@@ -22,8 +22,7 @@ import { Roles } from '../../auth/decorators/role.decorator';
 export class CursosController {
   constructor(private readonly cursosService: CursosService) {}
 
-  @UseGuards(AuthGuard, RolesGuard)
-  @Roles('admin', 'aluno')
+  @UseGuards(AuthGuard)
   @Get()
   @ApiOperation({
     summary: 'Retorna os cursos cadastrados no sistema',
@@ -40,8 +39,7 @@ export class CursosController {
     return this.cursosService.findAll();
   }
 
-  @UseGuards(AuthGuard, RolesGuard)
-  @Roles('admin', 'aluno')
+  @UseGuards(AuthGuard)
   @Get(':id')
   @ApiOperation({
     summary: 'Retorna o curso com o id informado',

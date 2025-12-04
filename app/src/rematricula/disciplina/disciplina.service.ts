@@ -31,8 +31,11 @@ export class DisciplinasService {
     return this.repository.save(disciplina);
   }
 
-  async findAll(): Promise<DisciplinaEntity[]> {
+  async findAll(idCurso: number): Promise<DisciplinaEntity[]> {
     return this.repository.find({
+      where: {
+        curso: { id: idCurso },
+      },
       relations: ['curso', 'turmas', 'prerequisitos'],
     });
   }

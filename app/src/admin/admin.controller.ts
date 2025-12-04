@@ -23,6 +23,7 @@ import { Roles } from '../auth/decorators/role.decorator';
 @Controller('admin')
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
+
   @Post()
   @ApiOperation({
     summary: 'Cria um novo admin no sistema',
@@ -54,6 +55,14 @@ export class AdminController {
     status: 401,
     description: 'Nenhum token fornecido',
   })
+  @ApiResponse({
+    status: 400,
+    description: 'ID inválido',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Admin com ID *id* não encontrado',
+  })
   findAll() {
     return this.adminService.findAll();
   }
@@ -71,6 +80,10 @@ export class AdminController {
   @ApiResponse({
     status: 401,
     description: 'Nenhum token fornecido',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Admin não autenticado',
   })
   async updateSelf(@Body() dto: UpdateAdminDto, @Req() req: express.Request) {
     if (!req.user) {
@@ -124,6 +137,10 @@ export class AdminController {
   @ApiResponse({
     status: 401,
     description: 'Nenhum token fornecido',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Admin com ID *id* não encontrado',
   })
   async remove(
     @Param('id', ParseIntPipe) id: number,

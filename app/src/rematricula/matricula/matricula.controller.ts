@@ -43,7 +43,7 @@ export class MatriculasController {
   @UseGuards(AuthGuard, RolesGuard)
   @Roles('admin')
   @Get()
-  @ApiOperation({ summary: 'Retorna todas as matrículas cadastradas (ADMIN)' })
+  @ApiOperation({ summary: 'Retorna todas as matrículas cadastradas' })
   findAll() {
     return this.service.findAll();
   }

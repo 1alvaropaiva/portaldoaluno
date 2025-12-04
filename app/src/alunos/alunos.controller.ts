@@ -22,8 +22,10 @@ import { Roles } from '../auth/decorators/role.decorator';
 export class AlunosController {
   constructor(private readonly alunosService: AlunosService) {}
 
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('admin')
   @Get()
-  @ApiOperation({ summary: 'Retorna todos os alunos cadastrados' })
+  @ApiOperation({ summary: 'Retorna todos os alunos cadastrados (admin)' })
   @ApiResponse({
     status: 200,
     description: '*Informações dos alunos cadastrados*',
