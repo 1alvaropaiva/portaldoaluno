@@ -30,12 +30,20 @@ export class AlunosController {
     status: 200,
     description: '*Informações dos alunos cadastrados*',
   })
+  @ApiResponse({
+      status: 401,
+      description: 'Nenhum token fornecido',
+  })
+  @ApiResponse({
+      status: 401,
+      description: 'Token inválido',
+  })
   findAll() {
     return this.alunosService.findAll();
   }
 
   @UseGuards(AuthGuard, RolesGuard)
-  @Roles('admin', 'aluno')
+  @Roles( 'aluno' )
   @Put('update')
   @ApiOperation({
     summary: 'Atualiza o nome e/ou a senha do aluno autenticado',
@@ -48,11 +56,17 @@ export class AlunosController {
     status: 401,
     description: 'Nenhum token fornecido',
   })
+  @ApiResponse({
+      status: 401,
+      description: 'Token inválido',
+  })
+  @ApiResponse({
+      status: 403,
+      description: 'Acesso negado: apenas aluno pode acessar.',
+  })
   async updateSelf(@Body() dto: UpdateAlunoDto, @Req() req: Request) {
-    if (!req.user) {
-      throw new ForbiddenException('Aluno não autenticado');
-    }
-    return this.alunosService.update(req.user.id, dto);
+    // @ts-ignore
+      return this.alunosService.update(req.user.id, dto);
   }
 
   @UseGuards(AuthGuard, RolesGuard)
@@ -70,8 +84,12 @@ export class AlunosController {
     description: 'Nenhum token fornecido',
   })
   @ApiResponse({
+      status: 401,
+      description: 'Token inválido',
+  })
+  @ApiResponse({
     status: 403,
-    description: 'Acesso negado: apenas **admin** pode acessar.',
+    description: 'Acesso negado: apenas admin pode acessar.',
   })
   async updateByAdmin(
     @Param('id', ParseIntPipe) id: number,
@@ -88,51 +106,62 @@ export class AlunosController {
   })
   @ApiResponse({
     status: 200,
-    description: 'Bem vindo, *nome do aluno*!',
+    description: 'Bem vindo, *nome do aluno*!' +
+        '*matricula do aluno*',
   })
   @ApiResponse({
     status: 401,
     description: 'Nenhum token fornecido',
   })
   @ApiResponse({
+      status: 401,
+      description: 'Token inválido',
+  })
+  @ApiResponse({
     status: 403,
-    description: 'Acesso negado: apenas **aluno/admin** pode acessar.',
+    description: 'Acesso negado: apenas aluno pode acessar.',
   })
   async dashboard(@Req() req: Request) {
-    if (!req.user) {
-      throw new ForbiddenException('Aluno não autenticado');
-    }
-    const aluno = await this.alunosService.findOne(req.user.id);
+      // @ts-ignore
+      const aluno = await this.alunosService.findOne(req.user.id, req.user!);
     return {
       mensagem: `Bem-vindo, ${aluno.nome}!`,
       matricula: aluno.matricula,
     };
   }
 
-  @UseGuards(AuthGuard, RolesGuard)
-  @Roles('admin', 'aluno')
-  @Delete(':id')
-  @ApiOperation({
-    summary: 'Deleta o aluno autenticado',
-  })
-  @ApiResponse({
-    status: 200,
-    description: '*Informações do aluno*',
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Nenhum token fornecido',
-  })
-  async remove(@Param('id', ParseIntPipe) id: number, @Req() req: Request) {
-    if (!req.user) {
-      throw new ForbiddenException('Aluno não autenticado');
+    @UseGuards(AuthGuard, RolesGuard)
+    @Roles('admin', 'aluno')
+    @Delete(':id')
+    @ApiOperation({
+        summary: 'Deleta um aluno (apenas o próprio aluno ou admin).',
+    })
+    @ApiResponse({
+        status: 200,
+        description: 'Aluno removido com sucesso.',
+    })
+    @ApiResponse({
+        status: 401,
+        description: 'Token inválido.',
+    })
+    @ApiResponse({
+        status: 401,
+        description: 'Nenhum token fornecido',
+    })
+    @ApiResponse({
+        status: 403,
+        description: 'Você não tem permissão para deletar outro aluno',
+    })
+    @ApiResponse({
+        status: 404,
+        description: 'Aluno não encontrado.',
+    })
+    async remove(
+        @Param('id', ParseIntPipe) id: number,
+        @Req() req: Request,
+    ) {
+        await this.alunosService.remove(id, req.user!);
+        return 'Aluno removido com sucesso!';
     }
 
-    if (req.user.role !== 'admin' && req.user.id !== id) {
-      throw new ForbiddenException('Você só pode remover a sua própria conta');
-    }
-
-    await this.alunosService.remove(id);
-    return 'Removido com sucesso!';
-  }
 }

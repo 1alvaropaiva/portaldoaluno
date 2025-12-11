@@ -1,8 +1,8 @@
 import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-  UnauthorizedException,
+    BadRequestException, ForbiddenException,
+    Injectable,
+    NotFoundException,
+    UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -11,6 +11,7 @@ import { AlunoEntity } from './entities/aluno.entity';
 import { CreateAlunoDto } from './dto/create-aluno.dto';
 import { UpdateAlunoDto } from './dto/update-aluno.dto';
 import { CursoEntity } from '../rematricula/curso/entities/curso.entity';
+import {JwtPayload} from "../@types/express";
 
 @Injectable()
 export class AlunosService {
@@ -47,9 +48,12 @@ export class AlunosService {
     return this.repository.find();
   }
 
-  async findOne(id: number): Promise<AlunoEntity> {
+  async findOne(id: number, user: JwtPayload): Promise<AlunoEntity> {
     if (!Number.isInteger(id) || id <= 0) {
       throw new BadRequestException('ID inválido');
+    }
+    if (!user) {
+      throw new ForbiddenException('Aluno não autenticado');
     }
     const aluno = await this.repository.findOne({ where: { id } });
     if (!aluno) {
@@ -125,8 +129,14 @@ export class AlunosService {
     return await this.repository.save(aluno);
   }
 
-  async remove(id: number): Promise<void> {
-    const aluno = await this.findOne(id);
+  async remove(id: number, user: JwtPayload): Promise<void> {
+    const aluno = await this.findOne(id, user);
+      if (!aluno) {
+          throw new NotFoundException('Aluno não encontrado');
+      }
+      if (user.role === 'aluno' && user.id !== id) {
+          throw new ForbiddenException('Você não tem permissão para deletar outro aluno');
+      }
     await this.repository.remove(aluno);
   }
 }
