@@ -6,7 +6,6 @@ import {
   Delete,
   UseGuards,
   Req,
-  ForbiddenException,
   Put,
   ParseIntPipe,
 } from '@nestjs/common';
@@ -17,6 +16,7 @@ import { UpdateAlunoDto } from './dto/update-aluno.dto';
 import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { RolesGuard } from '../auth/guard/roles.guard';
 import { Roles } from '../auth/decorators/role.decorator';
+import {AdminUpdateAlunoDto} from "./dto/admin-update-aluno.dto";
 
 @Controller('alunos')
 export class AlunosController {
@@ -50,7 +50,7 @@ export class AlunosController {
   })
   @ApiResponse({
     status: 200,
-    description: '*Mostra os dados atualizados, com hash de senha*',
+    description: 'Dados atualizados com sucesso!',
   })
   @ApiResponse({
     status: 401,
@@ -65,8 +65,10 @@ export class AlunosController {
       description: 'Acesso negado: apenas aluno pode acessar.',
   })
   async updateSelf(@Body() dto: UpdateAlunoDto, @Req() req: Request) {
-    // @ts-ignore
-      return this.alunosService.update(req.user.id, dto);
+      await this.alunosService.update(req.user!.id, dto);
+      return {
+          mensagem: 'Dados atualizados com sucesso!'
+      };
   }
 
   @UseGuards(AuthGuard, RolesGuard)
@@ -77,7 +79,7 @@ export class AlunosController {
   })
   @ApiResponse({
     status: 200,
-    description: '*Mostra os dados atualizados, com hash de senha*',
+    description: 'Aluno atualizado com sucesso!',
   })
   @ApiResponse({
     status: 401,
@@ -93,9 +95,12 @@ export class AlunosController {
   })
   async updateByAdmin(
     @Param('id', ParseIntPipe) id: number,
-    @Body() dto: UpdateAlunoDto,
+    @Body() dto: AdminUpdateAlunoDto,
   ) {
-    return this.alunosService.adminUpdate(id, dto);
+    await this.alunosService.adminUpdate(id, dto);
+      return {
+          mensagem: 'Aluno atualizado com sucesso!'
+      };
   }
 
   @UseGuards(AuthGuard, RolesGuard)
@@ -119,49 +124,57 @@ export class AlunosController {
   })
   @ApiResponse({
     status: 403,
-    description: 'Acesso negado: apenas aluno pode acessar.',
+    description: 'Acesso negado: apenas aluno pode acessar.'
+  })
+  @ApiResponse({
+      status: 403,
+      description: 'Aluno não autenticado.'
+  })
+  @ApiResponse({
+      status: 403,
+      description: 'Você não tem permissão para acessar esse aluno.'
   })
   async dashboard(@Req() req: Request) {
-      // @ts-ignore
-      const aluno = await this.alunosService.findOne(req.user.id, req.user!);
-    return {
-      mensagem: `Bem-vindo, ${aluno.nome}!`,
-      matricula: aluno.matricula,
-    };
+      const aluno = await this.alunosService.findOne(req.user!.id, req.user);
+      return {
+          mensagem: `Bem-vindo, ${aluno.nome}!`,
+          matricula: aluno.matricula,
+      };
   }
 
-    @UseGuards(AuthGuard, RolesGuard)
-    @Roles('admin', 'aluno')
-    @Delete(':id')
-    @ApiOperation({
-        summary: 'Deleta um aluno (apenas o próprio aluno ou admin).',
-    })
-    @ApiResponse({
-        status: 200,
-        description: 'Aluno removido com sucesso.',
-    })
-    @ApiResponse({
-        status: 401,
-        description: 'Token inválido.',
-    })
-    @ApiResponse({
-        status: 401,
-        description: 'Nenhum token fornecido',
-    })
-    @ApiResponse({
-        status: 403,
-        description: 'Você não tem permissão para deletar outro aluno',
-    })
-    @ApiResponse({
-        status: 404,
-        description: 'Aluno não encontrado.',
-    })
-    async remove(
-        @Param('id', ParseIntPipe) id: number,
-        @Req() req: Request,
-    ) {
-        await this.alunosService.remove(id, req.user!);
-        return 'Aluno removido com sucesso!';
-    }
-
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('admin', 'aluno')
+  @Delete(':id')
+  @ApiOperation({
+      summary: 'Deleta um aluno (apenas o próprio aluno ou admin).',
+  })
+  @ApiResponse({
+      status: 200,
+      description: 'Aluno removido com sucesso.',
+  })
+  @ApiResponse({
+      status: 401,
+      description: 'Token inválido.',
+  })
+  @ApiResponse({
+      status: 401,
+      description: 'Nenhum token fornecido',
+  })
+  @ApiResponse({
+      status: 403,
+      description: 'Você não tem permissão para deletar outro aluno',
+  })
+  @ApiResponse({
+      status: 404,
+      description: 'Aluno não encontrado.',
+  })
+  async remove(
+      @Param('id', ParseIntPipe) id: number,
+      @Req() req: Request,
+  ) {
+      await this.alunosService.remove(id, req.user!);
+      return {
+          mensagem: 'Aluno removido com sucesso!'
+      };
+  }
 }
