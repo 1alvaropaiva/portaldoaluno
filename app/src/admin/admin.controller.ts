@@ -7,7 +7,6 @@ import {
   Delete,
   UseGuards,
   Req,
-  ForbiddenException,
   Put,
   ParseIntPipe,
 } from '@nestjs/common';
@@ -16,7 +15,7 @@ import { AuthGuard } from '../auth/guard/auth.guard';
 import { AdminService } from './admin.service';
 import { CreateAdminDto } from './dto/create-admin.dto';
 import { UpdateAdminDto } from './dto/update-admin.dto';
-import { ApiOperation, ApiResponse } from '@nestjs/swagger';
+import {ApiBearerAuth, ApiOperation, ApiResponse} from '@nestjs/swagger';
 import { RolesGuard } from '../auth/guard/roles.guard';
 import { Roles } from '../auth/decorators/role.decorator';
 
@@ -32,17 +31,14 @@ export class AdminController {
     status: 200,
     description: 'Admin criado com sucesso!',
   })
-  @ApiResponse({
-    status: 401,
-    description: 'Nenhum token fornecido',
-  })
   async create(@Body() dto: CreateAdminDto) {
     await this.adminService.create(dto);
-    return 'Admin criado com sucesso!';
+    return {message: 'Admin criado com sucesso!'};
   }
 
   @UseGuards(AuthGuard, RolesGuard)
   @Roles('admin')
+  @ApiBearerAuth('Token JWT')
   @Get()
   @ApiOperation({
     summary: 'Retorna a lista de admins',
@@ -56,12 +52,12 @@ export class AdminController {
     description: 'Nenhum token fornecido',
   })
   @ApiResponse({
-    status: 400,
-    description: 'ID inválido',
+    status: 401,
+    description: 'Token inválido',
   })
   @ApiResponse({
-    status: 404,
-    description: 'Admin com ID *id* não encontrado',
+      status: 403,
+      description: 'Acesso negado: apenas admin pode acessar.',
   })
   findAll() {
     return this.adminService.findAll();
@@ -69,9 +65,10 @@ export class AdminController {
 
   @UseGuards(AuthGuard, RolesGuard)
   @Roles('admin')
+  @ApiBearerAuth('Token JWT')
   @Put('update')
   @ApiOperation({
-    summary: 'Atualiza um admin já cadastrado',
+    summary: 'Atualiza o admin autenticado',
   })
   @ApiResponse({
     status: 200,
@@ -82,19 +79,21 @@ export class AdminController {
     description: 'Nenhum token fornecido',
   })
   @ApiResponse({
-    status: 403,
-    description: 'Admin não autenticado',
+      status: 401,
+      description: 'Token inválido',
+  })
+  @ApiResponse({
+      status: 403,
+      description: 'Acesso negado: apenas admin pode acessar.',
   })
   async updateSelf(@Body() dto: UpdateAdminDto, @Req() req: express.Request) {
-    if (!req.user) {
-      throw new ForbiddenException('Admin não autenticado');
-    }
-    await this.adminService.update(req.user.id, dto);
-    return 'Admin atualizado com sucesso!';
+    await this.adminService.update(req.user!.id, dto);
+    return {message: 'Admin atualizado com sucesso!'};
   }
 
   @UseGuards(AuthGuard, RolesGuard)
   @Roles('admin')
+  @ApiBearerAuth('Token JWT')
   @Get('dashboard')
   @ApiOperation({
     summary: 'Dashboard do admin autenticado',
@@ -108,16 +107,15 @@ export class AdminController {
     description: 'Nenhum token fornecido',
   })
   @ApiResponse({
-    status: 401,
-    description: 'Token inválido',
+      status: 401,
+      description: 'Token inválido',
+  })
+  @ApiResponse({
+      status: 403,
+      description: 'Acesso negado: apenas admin pode acessar.',
   })
   async dashboard(@Req() req: express.Request) {
-    if (!req.user) {
-      throw new ForbiddenException('Admin não autenticado');
-    }
-
-    const admin = await this.adminService.findOne(req.user.id);
-
+    const admin = await this.adminService.findOne(req.user!.id);
     return {
       mensagem: `Painel administrativo - Bem-vindo, ${admin.nome}`,
       cargo: admin.cargo,
@@ -126,35 +124,32 @@ export class AdminController {
 
   @UseGuards(AuthGuard, RolesGuard)
   @Roles('admin')
+  @ApiBearerAuth('Token JWT')
   @Delete(':id')
   @ApiOperation({
-    summary: 'Remove um admin existente',
-  })
+        summary: 'Remove o admin autenticado',
+    })
   @ApiResponse({
-    status: 200,
-    description: 'Admin removido com sucesso!',
-  })
+        status: 200,
+        description: 'Admin removido com sucesso!',
+    })
   @ApiResponse({
-    status: 401,
-    description: 'Nenhum token fornecido',
-  })
+        status: 401,
+        description: 'Nenhum token fornecido ou token inválido',
+    })
   @ApiResponse({
-    status: 403,
-    description: 'Admin com ID *id* não encontrado',
-  })
+        status: 403,
+        description: 'Você só pode remover sua própria conta',
+    })
+  @ApiResponse({
+        status: 404,
+        description: 'Admin não encontrado',
+    })
   async remove(
-    @Param('id', ParseIntPipe) id: number,
-    @Req() req: express.Request,
+      @Param('id', ParseIntPipe) id: number,
+      @Req() req: express.Request,
   ) {
-    if (!req.user) {
-      throw new ForbiddenException('Admin não autenticado');
+        await this.adminService.remove(id, req.user!);
+        return {message: 'Admin removido com sucesso'};
     }
-
-    if (req.user.id !== id) {
-      throw new ForbiddenException('Você só pode remover sua própria conta');
-    }
-
-    await this.adminService.remove(id);
-    return 'Admin removido com sucesso';
-  }
 }

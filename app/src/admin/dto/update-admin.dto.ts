@@ -16,8 +16,14 @@ export class UpdateAdminDto {
   @MinLength(6)
   senha?: string;
 
+
   @ApiPropertyOptional({ description: 'Novo cargo', example: 'Professor' })
   @IsOptional()
   @IsString()
   cargo?: string;
+
+    @ApiPropertyOptional({ description: 'Novo e-mail', example: 'admin@mail.com' })
+    @IsOptional()
+    @IsString()
+    email?: string;
 }

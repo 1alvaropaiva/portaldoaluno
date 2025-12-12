@@ -11,14 +11,6 @@ export class CreateAdminDto {
   nome!: string;
 
   @ApiProperty({
-    description: 'E-mail do administrador',
-    example: 'rubinho@mail.com',
-  })
-  @IsNotEmpty()
-  @IsEmail()
-  email!: string;
-
-  @ApiProperty({
     description: 'Senha de acesso (mínimo 6 caracteres)',
     example: 'Rubens123',
   })

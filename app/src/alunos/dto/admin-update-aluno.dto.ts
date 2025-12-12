@@ -4,7 +4,7 @@ import { IsEmail, IsOptional, IsString, MinLength } from 'class-validator';
 export class AdminUpdateAlunoDto {
     @ApiPropertyOptional({
         description: 'Novo nome completo',
-        example: 'Henrique',
+        example: '',
     })
     @IsOptional()
     @IsString()
