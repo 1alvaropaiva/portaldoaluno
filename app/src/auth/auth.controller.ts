@@ -7,7 +7,7 @@ import { AuthGuard } from './guard/auth.guard';
 import { AlunosService } from '../alunos/alunos.service';
 import { CreateAlunoDto } from '../alunos/dto/create-aluno.dto';
 import { TokenBlacklistService } from './token-blacklist.service';
-import { ApiOperation, ApiResponse } from '@nestjs/swagger';
+import {ApiBearerAuth, ApiOperation, ApiResponse} from '@nestjs/swagger';
 
 @Controller('auth')
 export class AuthController {
@@ -32,7 +32,7 @@ export class AuthController {
   })
   async register(@Body() dto: CreateAlunoDto) {
     await this.alunosService.create(dto);
-    return { message: 'Cadastrado com sucesso!' };
+    return { message: 'Aluno cadastrado com sucesso!' };
   }
 
   @Post('login')
@@ -52,6 +52,7 @@ export class AuthController {
   }
 
   @UseGuards(AuthGuard)
+  @ApiBearerAuth('Token JWT')
   @Post('logout')
   @ApiOperation({
     summary: 'Realiza o logout do aluno/admin no sistema',

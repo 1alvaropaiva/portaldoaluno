@@ -21,7 +21,6 @@ async function bootstrap() {
       },
       'Token JWT',
     )
-    .addSecurityRequirements('Token JWT')
     .build();
   const documentFactory = () => SwaggerModule.createDocument(app, config);
   SwaggerModule.setup(

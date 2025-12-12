@@ -13,7 +13,7 @@ import type { Request } from 'express';
 import { AuthGuard } from '../auth/guard/auth.guard';
 import { AlunosService } from './alunos.service';
 import { UpdateAlunoDto } from './dto/update-aluno.dto';
-import { ApiOperation, ApiResponse } from '@nestjs/swagger';
+import {ApiBearerAuth, ApiOperation, ApiResponse} from '@nestjs/swagger';
 import { RolesGuard } from '../auth/guard/roles.guard';
 import { Roles } from '../auth/decorators/role.decorator';
 import {AdminUpdateAlunoDto} from "./dto/admin-update-aluno.dto";
@@ -24,6 +24,7 @@ export class AlunosController {
 
   @UseGuards(AuthGuard, RolesGuard)
   @Roles('admin')
+  @ApiBearerAuth('Token JWT')
   @Get()
   @ApiOperation({ summary: 'Retorna todos os alunos cadastrados (admin)' })
   @ApiResponse({
@@ -38,12 +39,17 @@ export class AlunosController {
       status: 401,
       description: 'Token inválido',
   })
+  @ApiResponse({
+      status: 403,
+      description: 'Acesso negado: apenas admin pode acessar.',
+  })
   findAll() {
     return this.alunosService.findAll();
   }
 
   @UseGuards(AuthGuard, RolesGuard)
   @Roles( 'aluno' )
+  @ApiBearerAuth('Token JWT')
   @Put('update')
   @ApiOperation({
     summary: 'Atualiza o nome e/ou a senha do aluno autenticado',
@@ -61,6 +67,10 @@ export class AlunosController {
       description: 'Token inválido',
   })
   @ApiResponse({
+      status: 401,
+      description: 'Senha atual incorreta',
+  })
+  @ApiResponse({
       status: 403,
       description: 'Acesso negado: apenas aluno pode acessar.',
   })
@@ -73,6 +83,7 @@ export class AlunosController {
 
   @UseGuards(AuthGuard, RolesGuard)
   @Roles('admin')
+  @ApiBearerAuth('Token JWT')
   @Put(':id')
   @ApiOperation({
     summary: 'Atualiza os dados de qualquer aluno (somente admin)',
@@ -105,6 +116,7 @@ export class AlunosController {
 
   @UseGuards(AuthGuard, RolesGuard)
   @Roles('aluno')
+  @ApiBearerAuth('Token JWT')
   @Get('dashboard')
   @ApiOperation({
     summary: 'Dashboard do aluno autenticado',
@@ -144,6 +156,7 @@ export class AlunosController {
 
   @UseGuards(AuthGuard, RolesGuard)
   @Roles('admin', 'aluno')
+  @ApiBearerAuth('Token JWT')
   @Delete(':id')
   @ApiOperation({
       summary: 'Deleta um aluno (apenas o próprio aluno ou admin).',
@@ -166,7 +179,7 @@ export class AlunosController {
   })
   @ApiResponse({
       status: 404,
-      description: 'Aluno não encontrado.',
+      description: 'Aluno com id **id** não encontrado.',
   })
   async remove(
       @Param('id', ParseIntPipe) id: number,
